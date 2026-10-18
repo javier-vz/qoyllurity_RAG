@@ -1,72 +1,50 @@
-# Qoyllur Rit'i Explorer 3.0 — Etapa 1
+# Qoyllur Rit'i — Explorer 3.0 (interfaz simplificada)
 
-Explorador patrimonial en **Streamlit** basado en el grafo `qoyllurity.ttl`. Ofrece una entrada sencilla para visitantes y acceso opcional a relaciones y propiedades RDF para investigación.
+Versión de la aplicación pública en **Streamlit** diseñada para visitantes y especialistas. Tiene solo dos espacios: **Conversar** y **Explorar**. Dentro de cada registro se puede descargar su ficha; los datos RDF se muestran solo cuando la persona desea consultarlos.
 
-## Funcionalidades incluidas
+## Qué se conserva
 
-- **Inicio:** presentación y cuatro entradas temáticas a la conversación.
-- **Preguntar:** chat con historial de sesión, preguntas de seguimiento redactadas por Groq (cuando está disponible) y evidencias inspeccionables.
-- **Explorar:** catálogo filtrable por nombres, tipos y descripciones; relaciones entrantes y salientes.
-- **Fichas:** descripciones, propiedades, relaciones, URI y exportación PDF **sin inventar campos**.
-- **Proyecto:** alcance y funcionamiento de la herramienta.
-- **Modo sin Groq:** las consultas documentales, el catálogo y las fichas siguen disponibles. La redacción en ese modo es limitada y se basa en datos recuperados.
+- El archivo `qoyllurity.ttl` **intacto** (1.060 triples, 87 individuos).
+- El motor de recuperación documental y las respuestas explicativas mediante Groq.
+- Las preguntas de continuación redactadas por **Groq**, no mediante plantillas.
+- Evidencias procedentes del RDF, seguimiento del contexto conversacional y fichas PDF.
+- Funcionamiento de consulta documental y fichas aunque Groq falle o no esté configurado.
 
-La app utiliza el Turtle ORIGINAL (**1 060 tripletas, 87 individuos**, 34 entidades con latitud/longitud) y evita incorporar como personas/lugares a clases RDF. Se incluye una etiqueta legible para Ausangate, ausente en su `rdfs:label`, sin alterar el Turtle.
+## Cambios de experiencia
 
-### Alcance
+- Inicio directo en el chat: una sola portada breve, tres ejemplos y un cuadro para preguntar.
+- Exploración: búsqueda, filtro opcional, lectura del registro y PDF en un único lugar.
+- Ya no hay cinco pantallas, métricas en portada ni una ficha como pantalla independiente.
+- Textos y botones más cortos; detalles académicos plegados.
+- CSS sobrio, legible y adaptable a móvil sin imágenes ni fuentes externas.
 
-El grafo documenta sobre todo experiencias y entidades relacionadas con **Nación Paucartambo y 2025**. No debe interpretarse como una descripción exhaustiva de todas las naciones o de todos los años de la festividad. Los triples permiten auditar qué registra el dataset; **no sustituyen fuentes primarias y bibliografía revisada**.
-
-## Instalar y ejecutar (Windows / Anaconda Prompt)
+## Ejecutar en Windows / Anaconda
 
 ```bat
 conda create -n qoyllurity3 python=3.11 -y
 conda activate qoyllurity3
-cd RUTA_A_LA_CARPETA_DEL_REPOSITORIO
+cd RUTA_DEL_REPOSITORIO
 pip install -r requirements.txt
 streamlit run app.py
 ```
 
-Se abre una dirección local, normalmente `http://localhost:8501`. También funciona sin configurar Groq (modo documental). El paquete base **no descarga modelos grandes de embeddings** y prioriza una carga rápida: combina TF-IDF por palabras, similitud por caracteres y conexiones RDF. El módulo permite activar embeddings multilingües opcionalmente instalando manualmente `sentence-transformers` y adaptando `load_retriever` para `use_semantic=True`; esta mejora **no** está activada ni evaluada en la etapa 1.
-
-## Activar respuestas explicativas con Groq
-
-En [Streamlit Community Cloud](https://share.streamlit.io/) abre la aplicación, **Settings → Secrets** y conserva o agrega:
+En Streamlit Community Cloud: configurar el archivo de entrada `app.py` y conservar en **Settings → Secrets**:
 
 ```toml
-GROQ_API_KEY = "tu_clave_real"
+GROQ_API_KEY = "tu_clave"
 ```
 
-- La variable también se puede definir como variable de entorno `GROQ_API_KEY`.
-- **Nunca** subas el archivo `.streamlit/secrets.toml` a GitHub.
-- El modelo configurado en `config_graphrag.py` es `openai/gpt-oss-120b`. La disponibilidad y los límites dependen del acceso de tu cuenta Groq.
-- Cada sesión tiene un máximo sencillo de 20 intentos de generación con Groq y 40 mensajes de chat. **Esto limita solamente una sesión**: para protección de costes o abuso en despliegues públicos se requiere además rate limiting por usuario/servidor y límites en el proveedor.
-- Ante error de la API, el visitante recibe una síntesis local, mientras que los datos del grafo continúan accesibles.
+La clave jamás debe subirse a GitHub. Modelo predeterminado: `openai/gpt-oss-120b`. Groq redacta el texto y hasta tres preguntas de continuación en una sola llamada estructurada, cuando está disponible.
 
-## Publicar actualización en GitHub
+## Reemplazar el repositorio existente
 
-1. Descarga una copia o crea una rama de respaldo del repositorio actual.
-2. Descomprime el ZIP de esta versión en tu equipo.
-3. Sustituye en [github.com/javier-vz/qoyllurity](https://github.com/javier-vz/qoyllurity) los archivos antiguos por **los archivos de la raíz** del ZIP, preservando su organización y carpetas internas (`core/`, `views/`, `.streamlit/`, `tests/`).
-4. Elimina expresamente los archivos de versiones anteriores que ya no forman parte de esta app, en una rama o commit revisable. **Subir el ZIP descomprimido no borra los archivos existentes.**
-5. Confirma los cambios en `main` y verifica que Streamlit apunta a **`app.py`** y la rama correcta.
-6. Comprueba «Inicio», «Preguntar», «Explorar» y «Fichas», incluido descargar un PDF. Para comprobar generación con IA, realiza una pregunta después de configurar Secrets.
+1. Guarda un respaldo de la rama actual o crea una rama nueva.
+2. Descomprime este ZIP y **sube el contenido** (no el ZIP mismo) a la raíz del repositorio.
+3. Elimina los archivos viejos que el ZIP ya no incluye, especialmente `views/inicio.py`, `views/fichas.py` y `views/proyecto.py`, así como módulos antiguos de GraphRAG que no están en el ZIP.
+4. Mantén `qoyllurity.ttl` en la raíz y la carpeta `.streamlit/` con `config.toml`.
+5. Streamlit redeplegará la aplicación tras el commit. Si muestra código viejo, reiníciala y recarga el navegador.
 
-## Respuestas y preguntas de seguimiento redactadas por el LLM
-
-El modelo Groq configurado (`openai/gpt-oss-120b`) genera **en una sola
-llamada** la respuesta y hasta tres preguntas de seguimiento naturales, vinculadas
-al contexto RDF recuperado. Usa Structured Outputs (JSON Schema, modo estricto).
-
-Ya no hay plantillas para generar sugerencias como «¿Qué sabemos sobre X?».
-El código solo verifica el formato y elimina las preguntas repetidas; **no inventa ni
-reescribe las preguntas**. El modelo redacta artículos, contracciones y concordancias.
-Las etiquetas y URI RDF quedan intactas.
-
-En modo sin API o cuando falla Groq, se mantiene la respuesta documental local,
-pero no aparecen sugerencias generadas por código. Después del despliegue,
-pulsa «Limpiar conversación» para descartar las respuestas antiguas guardadas
-por Streamlit en la sesión actual.
+**Nota:** GitHub «Upload files» sobrescribe archivos con el mismo nombre, pero no borra automáticamente los que ya no forman parte de esta versión.
 
 ## Pruebas
 
@@ -74,29 +52,21 @@ por Streamlit en la sesión actual.
 python -m unittest discover -s tests -v
 ```
 
-Incluyen parseo RDF, conteos, recuperación, pruebas de evidencias por URI, errores de API simulados, parámetros Groq y generación PDF.
+Se comprueban la lectura del grafo, la recuperación, las evidencias, la API simulada y los PDF. Las llamadas reales a Groq se deben verificar con tu clave tras desplegar.
 
-## Estructura
+## Estructura mínima
 
 ```text
-app.py                      Entrada Streamlit / 5 pantallas
-config_graphrag.py          Parámetros y modelo
-qoyllurity.ttl              RDF original
-core/graph.py               Grafo, entidades, propiedades y relaciones
-core/retrieval.py           Búsqueda documental híbrida
-core/assistant.py           Respuestas y evidencias
-core/spanish.py             Redacción local alternativa (sin Groq)
-core/pdf.py                 Fichas estructuradas PDF
-views/inicio.py             Presentación y sugerencias
-views/preguntar.py          Chat e historial
-views/explorar.py           Catálogo y navegación
-views/fichas.py             Fichas y descarga
-views/proyecto.py           Alcance científico y datos
-.streamlit/config.toml      Estética
-requirements.txt            Dependencias de la aplicación
-tests/test_app_core.py      Pruebas de regresión
+app.py
+config_graphrag.py
+qoyllurity.ttl
+requirements.txt
+README.md
+.gitignore
+.streamlit/config.toml
+core/{graph,retrieval,assistant,spanish,pdf}.py
+views/{preguntar,explorar,shared}.py
+tests/test_app_core.py
 ```
 
-## Próximas etapas (todavía no incluidas)
-
-Mapas de lugares, rutas verificadas, cronología por jornadas, fotografías con procedencia acreditada y evaluación sistemática con preguntas de referencia. La versión 3.0 Etapa 1 constituye el fundamento para añadir esos módulos sin modificar el Turtle original.
+Datos científicos: principalmente experiencia de la Nación Paucartambo (2025). La representación RDF no es por sí sola una referencia bibliográfica contrastada. Las fotografías y rutas verificadas quedan para fases posteriores.
