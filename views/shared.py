@@ -2,13 +2,14 @@
 from __future__ import annotations
 import streamlit as st
 from core.graph import HeritageGraph, local
+from core.spanish import polish_spanish
 
 
 def entity_facts(store: HeritageGraph, eid: str, key_prefix='card'):
     card = store.data_card(eid)
     st.markdown('#### ' + card['name'])
     st.caption(' · '.join(card['kinds']) or 'Entidad documental')
-    st.write(card['description'] or 'El registro todavía no contiene una descripción.')
+    st.write(polish_spanish(card['description']) if card['description'] else 'El registro todavía no contiene una descripción.')
     if card['properties']:
         with st.expander('Propiedades documentadas', expanded=False):
             for f in card['properties']:

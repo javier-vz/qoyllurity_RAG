@@ -52,6 +52,16 @@ GROQ_API_KEY = "tu_clave_real"
 5. Confirma los cambios en `main` y verifica que Streamlit apunta a **`app.py`** y la rama correcta.
 6. Comprueba «Inicio», «Preguntar», «Explorar» y «Fichas», incluido descargar un PDF. Para comprobar generación con IA, realiza una pregunta después de configurar Secrets.
 
+## Español natural y artículos
+
+Las respuestas y preguntas sugeridas usan `core/spanish.py` para introducir
+artículos y contracciones («el Sinakara», «el glaciar Colque Punku»,
+«del apu Ausangate», «la laguna Yanaqocha»). El asistente Groq recibe
+instrucciones de estilo y su texto pasa por una revisión conservadora.
+Se conservan las etiquetas y las URI del archivo RDF **sin modificarlas**.
+Después del despliegue, usa «Limpiar conversación» para borrar respuestas
+anteriores almacenadas en la sesión de Streamlit.
+
 ## Pruebas
 
 ```bash
@@ -69,6 +79,7 @@ qoyllurity.ttl              RDF original
 core/graph.py               Grafo, entidades, propiedades y relaciones
 core/retrieval.py           Búsqueda documental híbrida
 core/assistant.py           Respuestas y evidencias
+core/spanish.py             Artículos y redacción natural en español
 core/pdf.py                 Fichas estructuradas PDF
 views/inicio.py             Presentación y sugerencias
 views/preguntar.py          Chat e historial

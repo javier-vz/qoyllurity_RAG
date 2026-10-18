@@ -10,7 +10,7 @@ def render(store: HeritageGraph):
     st.markdown('### ¿Por dónde quieres comenzar?')
     ideas = [
         ('🏔️', 'La festividad', "¿Qué es Qoyllur Rit'i?"),
-        ('🥾', 'Los lugares', '¿Qué sabemos sobre Sinakara?'),
+        ('🥾', 'Los lugares', '¿Qué sabemos sobre el Sinakara?'),
         ('🎭', 'Los participantes', '¿Qué sabemos de los ukukus?'),
         ('🗓️', 'Los acontecimientos', '¿Qué eventos rituales fueron documentados en 2025?'),
     ]

@@ -18,7 +18,7 @@ def render(store: HeritageGraph, retriever: Retriever, api_key: str | None):
     st.session_state.setdefault('groq_calls', 0)
     history = st.session_state['chat_history']
     if not history:
-        prompts = ['¿Qué sabemos de los ukukus?', '¿Dónde se ubica Sinakara?',
+        prompts = ['¿Qué sabemos de los ukukus?', '¿Dónde se ubica el Sinakara?',
                    '¿Qué vestimenta documenta el grafo?']
         cols = st.columns(1 if len(prompts) > 2 else 2)
         for ix, q in enumerate(prompts):

@@ -7,6 +7,7 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import cm
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, HRFlowable
+from core.spanish import polish_spanish
 
 
 def _text(value):
@@ -32,7 +33,7 @@ def create_pdf(card: dict) -> bytes:
              Paragraph('Tipo: ' + _text(', '.join(card['kinds']) or 'Sin clasificar'), body),
              HRFlowable(width='100%', color=colors.HexColor('#d9c7a6'), thickness=1),
              Paragraph('Descripción documental', sub),
-             Paragraph(_text(card.get('description') or 'Sin descripción registrada.'), body)]
+             Paragraph(_text(polish_spanish(card.get('description') or 'Sin descripción registrada.')), body)]
     if card['properties']:
         story.append(Paragraph('Propiedades documentadas', sub))
         for f in card['properties']:

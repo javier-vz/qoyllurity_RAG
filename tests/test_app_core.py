@@ -10,6 +10,7 @@ from core.graph import HeritageGraph
 from core.retrieval import Retriever
 from core.assistant import answer_question
 from core.pdf import create_pdf
+from core.spanish import about_question, where_question, polish_spanish, prep_phrase
 
 
 class FakeClient:
@@ -81,8 +82,57 @@ class TestGraph(unittest.TestCase):
     def test_api_failure_local_fallback(self):
         a = answer_question(self.graph, self.retriever, '¿Qué sabemos de los ukukus?', client=FakeClient(fail=True))
         self.assertEqual(a.status, 'api_no_disponible')
-        self.assertIn('Ukumaris', a.text)
+        self.assertIn('ukumaris', a.text.lower())
         self.assertNotIn('token', a.text)
+
+    def test_spanish_articles_in_suggestions(self):
+        self.assertEqual(about_question('Sinakara'), '¿Qué sabemos sobre el Sinakara?')
+        self.assertEqual(about_question('Glaciar Colque Punku'),
+                         '¿Qué sabemos sobre el glaciar Colque Punku?')
+        self.assertEqual(about_question('Ausangate'),
+                         '¿Qué sabemos sobre el apu Ausangate?')
+        self.assertEqual(where_question('Laguna Yanaqocha'),
+                         '¿Dónde se encuentra la laguna Yanaqocha?')
+        self.assertEqual(about_question('Paucartambo'),
+                         '¿Qué sabemos sobre Paucartambo?')
+        self.assertEqual(prep_phrase('de', 'Ausangate'), 'del apu Ausangate')
+        self.assertEqual(prep_phrase('a', 'Sinakara'), 'al Sinakara')
+
+    def test_suggestions_use_natural_spanish(self):
+        questions = self.retriever.suggestions('Ausangate', count=10)
+        self.assertIn('¿Qué sabemos sobre el glaciar Colque Punku?', questions)
+        self.assertFalse(any('sobre Glaciar' in q for q in questions))
+
+    def test_polish_generated_spanish_without_touching_rdf(self):
+        cases = {
+            'Sinakara es un espacio sagrado.': 'El Sinakara es un espacio sagrado.',
+            'En Sinakara ocurre la ceremonia.': 'En el Sinakara ocurre la ceremonia.',
+            'Se ubica en Glaciar Colque Punku.': 'Se ubica en el glaciar Colque Punku.',
+            'La vista de Sinakara y de Glaciar Colque Punku.':
+                'La vista del Sinakara y del glaciar Colque Punku.',
+            'Visita el Glaciar Colque Punku.': 'Visita el glaciar Colque Punku.',
+            'El nevado Ausangate es un referente.': 'El nevado Ausangate es un referente.',
+            'Apu Ausangate es importante.': 'El apu Ausangate es importante.',
+            'Está cerca de el Sinakara.': 'Está cerca del Sinakara.',
+        }
+        for original, expected in cases.items():
+            with self.subTest(original=original):
+                self.assertEqual(polish_spanish(original), expected)
+
+    def test_generated_answer_is_polished(self):
+        fake = FakeClient('Sinakara se sitúa cerca de Glaciar Colque Punku.')
+        a = answer_question(self.graph, self.retriever, '¿Dónde está Sinakara?', client=fake)
+        self.assertEqual(a.text, 'El Sinakara se sitúa cerca del glaciar Colque Punku.')
+
+    def test_local_answer_uses_articles_and_agreement(self):
+        a = answer_question(self.graph, self.retriever, '¿Qué hacen los ukukus?')
+        self.assertIn('Los ukumaris de Paucartambo', a.text)
+        self.assertIn('ejecutan la danza del Ukumari', a.text)
+        self.assertNotIn('ejecutan de la danza', a.text)
+        glacier = answer_question(self.graph, self.retriever,
+                                  '¿Qué sabemos sobre el glaciar Colque Punku?')
+        self.assertIn('Forma parte del apu Ausangate', glacier.text)
+        self.assertNotIn('de el apu', glacier.text)
 
     def test_structured_pdfs(self):
         for eid in ('Ausangate', 'Lomada_2025', 'Ukumaris_Paucartambo_2025'):
