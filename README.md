@@ -5,7 +5,7 @@ Explorador patrimonial en **Streamlit** basado en el grafo `qoyllurity.ttl`. Ofr
 ## Funcionalidades incluidas
 
 - **Inicio:** presentación y cuatro entradas temáticas a la conversación.
-- **Preguntar:** chat con historial de sesión, sugerencias basadas en vecinos del grafo y evidencias inspeccionables.
+- **Preguntar:** chat con historial de sesión, preguntas de seguimiento redactadas por Groq (cuando está disponible) y evidencias inspeccionables.
 - **Explorar:** catálogo filtrable por nombres, tipos y descripciones; relaciones entrantes y salientes.
 - **Fichas:** descripciones, propiedades, relaciones, URI y exportación PDF **sin inventar campos**.
 - **Proyecto:** alcance y funcionamiento de la herramienta.
@@ -52,15 +52,21 @@ GROQ_API_KEY = "tu_clave_real"
 5. Confirma los cambios en `main` y verifica que Streamlit apunta a **`app.py`** y la rama correcta.
 6. Comprueba «Inicio», «Preguntar», «Explorar» y «Fichas», incluido descargar un PDF. Para comprobar generación con IA, realiza una pregunta después de configurar Secrets.
 
-## Español natural y artículos
+## Respuestas y preguntas de seguimiento redactadas por el LLM
 
-Las respuestas y preguntas sugeridas usan `core/spanish.py` para introducir
-artículos y contracciones («el Sinakara», «el glaciar Colque Punku»,
-«del apu Ausangate», «la laguna Yanaqocha»). El asistente Groq recibe
-instrucciones de estilo y su texto pasa por una revisión conservadora.
-Se conservan las etiquetas y las URI del archivo RDF **sin modificarlas**.
-Después del despliegue, usa «Limpiar conversación» para borrar respuestas
-anteriores almacenadas en la sesión de Streamlit.
+El modelo Groq configurado (`openai/gpt-oss-120b`) genera **en una sola
+llamada** la respuesta y hasta tres preguntas de seguimiento naturales, vinculadas
+al contexto RDF recuperado. Usa Structured Outputs (JSON Schema, modo estricto).
+
+Ya no hay plantillas para generar sugerencias como «¿Qué sabemos sobre X?».
+El código solo verifica el formato y elimina las preguntas repetidas; **no inventa ni
+reescribe las preguntas**. El modelo redacta artículos, contracciones y concordancias.
+Las etiquetas y URI RDF quedan intactas.
+
+En modo sin API o cuando falla Groq, se mantiene la respuesta documental local,
+pero no aparecen sugerencias generadas por código. Después del despliegue,
+pulsa «Limpiar conversación» para descartar las respuestas antiguas guardadas
+por Streamlit en la sesión actual.
 
 ## Pruebas
 
@@ -79,7 +85,7 @@ qoyllurity.ttl              RDF original
 core/graph.py               Grafo, entidades, propiedades y relaciones
 core/retrieval.py           Búsqueda documental híbrida
 core/assistant.py           Respuestas y evidencias
-core/spanish.py             Artículos y redacción natural en español
+core/spanish.py             Redacción local alternativa (sin Groq)
 core/pdf.py                 Fichas estructuradas PDF
 views/inicio.py             Presentación y sugerencias
 views/preguntar.py          Chat e historial

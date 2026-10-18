@@ -63,13 +63,6 @@ def prep_phrase(preposition: str, label: str, kinds=()) -> str:
     return preposition + ' ' + mention
 
 
-def about_question(label: str, kinds=()) -> str:
-    return f'¿Qué sabemos sobre {entity_mention(label, kinds)}?'
-
-
-def where_question(label: str, kinds=()) -> str:
-    return f'¿Dónde se encuentra {entity_mention(label, kinds)}?'
-
 
 # Revisión de las denominaciones geográficas más frecuentes. Solamente se
 # ajusta el texto de presentación, nunca los triples o identificadores RDF.

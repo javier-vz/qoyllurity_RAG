@@ -7,7 +7,6 @@ from __future__ import annotations
 import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
 from core.graph import HeritageGraph, normalize
-from core.spanish import about_question, where_question
 from config_graphrag import SEMANTIC_MODEL
 
 FOLLOWUP = {'alli', 'ahi', 'ese', 'esa', 'esos', 'esas', 'ellos', 'su', 'sus', 'aquello'}
@@ -93,17 +92,3 @@ class Retriever:
             if len(results) >= top_k:
                 break
         return results
-
-    def suggestions(self, eid: str, count: int = 3) -> list[str]:
-        ent = self.store.entities.get(eid)
-        if not ent:
-            return []
-        suggestions = []
-        for linked in self.store.related_ids(eid):
-            other = self.store.entities[linked]
-            suggestions.append(about_question(other.label, other.kinds))
-            if len(suggestions) >= count:
-                break
-        if len(suggestions) < count and ent.description:
-            suggestions.append(where_question(ent.label, ent.kinds))
-        return list(dict.fromkeys(suggestions))[:count]

@@ -30,13 +30,16 @@ def render(store: HeritageGraph, retriever: Retriever, api_key: str | None):
         with st.chat_message(message['role'], avatar='🏔️' if message['role']=='assistant' else None):
             st.markdown(message['text'])
             if message['role'] == 'assistant':
-                if message.get('status') == 'api_no_disponible':
+                if message.get('status') == 'groq':
+                    st.caption('Respuesta y preguntas redactadas por Groq a partir del grafo RDF.')
+                elif message.get('status') == 'api_no_disponible':
                     st.caption('Groq no respondió. Se muestra una síntesis directa del grafo.')
                 elif message.get('status') == 'sin_api':
                     st.caption('Síntesis directa de la ontología (sin modelo generativo).')
                 show_evidence(message.get('evidence', []), store=store, key_prefix=f'chat_{ix}')
-                if ix == len(history)-1:
-                    for j, q in enumerate(message.get('suggestions', [])):
+                if ix == len(history)-1 and message.get('suggestions'):
+                    st.caption('Puedes seguir explorando:')
+                    for j, q in enumerate(message['suggestions']):
                         if st.button('↗ ' + q, key=f'suggest_{ix}_{j}', use_container_width=False):
                             st.session_state['pending_question'] = q
                             st.rerun()

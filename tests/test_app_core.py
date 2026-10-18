@@ -3,6 +3,7 @@
 Ejecutar desde raíz: python -m unittest discover -s tests -v
 """
 import unittest
+import json
 from io import BytesIO
 from types import SimpleNamespace
 from config_graphrag import TTL_PATH
@@ -10,12 +11,12 @@ from core.graph import HeritageGraph
 from core.retrieval import Retriever
 from core.assistant import answer_question
 from core.pdf import create_pdf
-from core.spanish import about_question, where_question, polish_spanish, prep_phrase
+from core.spanish import polish_spanish, prep_phrase
 
 
 class FakeClient:
-    def __init__(self, answer='Respuesta elaborada solo con datos recuperados.', fail=False):
-        self.answer = answer
+    def __init__(self, answer=None, fail=False):
+        self.answer = answer if answer is not None else {'respuesta': 'Respuesta elaborada con datos recuperados.', 'preguntas_sugeridas': ['¿Qué acontecimientos se relacionan con este lugar?', '¿Qué participantes aparecen en sus registros?']}
         self.fail = fail
         self.params = None
         self.chat = SimpleNamespace(completions=SimpleNamespace(create=self.create))
@@ -23,7 +24,8 @@ class FakeClient:
         self.params = kwargs
         if self.fail:
             raise RuntimeError('API indisponible; token no debe aparecer')
-        return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content=self.answer))])
+        content = json.dumps(self.answer, ensure_ascii=False) if isinstance(self.answer, dict) else self.answer
+        return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content=content))])
 
 
 class TestGraph(unittest.TestCase):
@@ -85,23 +87,38 @@ class TestGraph(unittest.TestCase):
         self.assertIn('ukumaris', a.text.lower())
         self.assertNotIn('token', a.text)
 
-    def test_spanish_articles_in_suggestions(self):
-        self.assertEqual(about_question('Sinakara'), '¿Qué sabemos sobre el Sinakara?')
-        self.assertEqual(about_question('Glaciar Colque Punku'),
-                         '¿Qué sabemos sobre el glaciar Colque Punku?')
-        self.assertEqual(about_question('Ausangate'),
-                         '¿Qué sabemos sobre el apu Ausangate?')
-        self.assertEqual(where_question('Laguna Yanaqocha'),
-                         '¿Dónde se encuentra la laguna Yanaqocha?')
-        self.assertEqual(about_question('Paucartambo'),
-                         '¿Qué sabemos sobre Paucartambo?')
-        self.assertEqual(prep_phrase('de', 'Ausangate'), 'del apu Ausangate')
-        self.assertEqual(prep_phrase('a', 'Sinakara'), 'al Sinakara')
+    def test_questions_come_from_the_model_and_are_not_templates(self):
+        qa = ['¿Qué relación tiene el Sinakara con la peregrinación?',
+              '¿Qué ceremonias se documentaron en ese lugar?']
+        fake = FakeClient(answer={'respuesta': 'El Sinakara figura entre los lugares sagrados documentados.',
+                                  'preguntas_sugeridas': qa})
+        a = answer_question(self.graph, self.retriever, '¿Qué es Sinakara?', client=fake)
+        self.assertEqual(a.suggestions, qa)
+        self.assertIn('respuesta_patrimonial', str(fake.params['response_format']))
+        self.assertTrue(fake.params['response_format']['json_schema']['strict'])
+        self.assertEqual(fake.params['model'], 'openai/gpt-oss-120b')
+        self.assertIn('DATOS_RDF', fake.params['messages'][1]['content'])
 
-    def test_suggestions_use_natural_spanish(self):
-        questions = self.retriever.suggestions('Ausangate', count=10)
-        self.assertIn('¿Qué sabemos sobre el glaciar Colque Punku?', questions)
-        self.assertFalse(any('sobre Glaciar' in q for q in questions))
+    def test_offline_does_not_fabricate_llm_questions(self):
+        a = answer_question(self.graph, self.retriever, '¿Qué es Sinakara?')
+        self.assertEqual(a.suggestions, [])
+
+    def test_repeated_questions_are_not_displayed(self):
+        fake = FakeClient(answer={'respuesta': 'El grafo documenta esta entidad.',
+                                  'preguntas_sugeridas': ['¿Qué es Sinakara?',
+                                                          '¿Dónde se encuentra el Sinakara?',
+                                                          '¿Dónde se encuentra el Sinakara?',
+                                                          '¿Qué significa este lugar?',
+                                                          'Eso no es pregunta']})
+        a = answer_question(self.graph, self.retriever, '¿Qué es Sinakara?', client=fake)
+        self.assertEqual(a.suggestions, ['¿Dónde se encuentra el Sinakara?',
+                                          '¿Qué significa este lugar?'])
+
+    def test_invalid_json_does_not_show_automatic_suggestions(self):
+        fake = FakeClient(answer='Respuesta no estructurada de un API')
+        a = answer_question(self.graph, self.retriever, '¿Qué es Sinakara?', client=fake)
+        self.assertEqual(a.status, 'api_no_disponible')
+        self.assertEqual(a.suggestions, [])
 
     def test_polish_generated_spanish_without_touching_rdf(self):
         cases = {
@@ -119,10 +136,12 @@ class TestGraph(unittest.TestCase):
             with self.subTest(original=original):
                 self.assertEqual(polish_spanish(original), expected)
 
-    def test_generated_answer_is_polished(self):
-        fake = FakeClient('Sinakara se sitúa cerca de Glaciar Colque Punku.')
+    def test_generated_answer_keeps_llm_wording(self):
+        fake = FakeClient(answer={'respuesta': 'El Sinakara es un espacio sagrado registrado.',
+                                  'preguntas_sugeridas': ['¿Qué actividades se documentan allí?']})
         a = answer_question(self.graph, self.retriever, '¿Dónde está Sinakara?', client=fake)
-        self.assertEqual(a.text, 'El Sinakara se sitúa cerca del glaciar Colque Punku.')
+        self.assertEqual(a.text, 'El Sinakara es un espacio sagrado registrado.')
+        self.assertEqual(a.suggestions, ['¿Qué actividades se documentan allí?'])
 
     def test_local_answer_uses_articles_and_agreement(self):
         a = answer_question(self.graph, self.retriever, '¿Qué hacen los ukukus?')
